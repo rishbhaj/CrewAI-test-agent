@@ -3,6 +3,56 @@ from pydantic import BaseModel
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import tool
 import json
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configure LLM
+def get_llm_config():
+    """Get LLM configuration from environment variables"""
+    llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    
+    if llm_provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+        return {
+            "provider": "openai",
+            "model": os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+            "api_key": api_key
+        }
+    
+    elif llm_provider == "anthropic":
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+        return {
+            "provider": "anthropic",
+            "model": os.getenv("ANTHROPIC_MODEL", "claude-3-sonnet-20240229"),
+            "api_key": api_key
+        }
+    
+    elif llm_provider == "groq":
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY environment variable not set")
+        return {
+            "provider": "groq",
+            "model": os.getenv("GROQ_MODEL", "gemma-2-9b-it"),
+            "api_key": api_key
+        }
+    
+    else:
+        raise ValueError(f"Unsupported LLM provider: {llm_provider}")
+
+# Validate LLM configuration on startup
+try:
+    llm_config = get_llm_config()
+except ValueError as e:
+    print(f"Warning: LLM not configured - {str(e)}")
+    print("Please set environment variables for your LLM provider before making requests")
 
 # Define custom tools
 @tool
@@ -32,7 +82,8 @@ agent = Agent(
     backstory="You are a helpful AI assistant with access to various tools to assist with user queries.",
     tools=[search_web, calculate, get_current_date],
     verbose=True,
-    allow_delegation=False
+    allow_delegation=False,
+    llm=None  # Will be configured from environment variables
 )
 
 # FastAPI app
@@ -67,6 +118,15 @@ async def ask_agent(request: QueryRequest):
         if not request.query.strip():
             raise HTTPException(status_code=400, detail="Query cannot be empty")
         
+        # Check if LLM is configured
+        try:
+            llm_config = get_llm_config()
+        except ValueError as e:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"LLM not configured: {str(e)}. Please set the appropriate environment variables."
+            )
+        
         # Create task for this specific query
         task = Task(
             description=request.query,
@@ -89,6 +149,8 @@ async def ask_agent(request: QueryRequest):
             query=request.query,
             response=str(result)
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
 

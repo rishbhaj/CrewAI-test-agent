@@ -23,12 +23,51 @@ A FastAPI wrapper for your CrewAI agent that provides REST API endpoints for que
 pip install -r requirements.txt
 ```
 
-2. Run the API locally:
+2. Configure your LLM provider:
+   - Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   - Edit `.env` and add your API key for your chosen LLM provider
+
+3. Run the API locally:
 ```bash
 python app.py
 ```
 
 The API will be available at `http://localhost:8000`
+
+## LLM Configuration
+
+The agent supports multiple LLM providers. Configure one by setting environment variables:
+
+### OpenAI (Default)
+```bash
+export LLM_PROVIDER=openai
+export OPENAI_API_KEY=sk-...
+export OPENAI_MODEL=gpt-3.5-turbo
+```
+
+### Anthropic Claude
+```bash
+export LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=your-key-here
+export ANTHROPIC_MODEL=claude-3-sonnet-20240229
+```
+
+### Groq
+```bash
+export LLM_PROVIDER=groq
+export GROQ_API_KEY=your-key-here
+export GROQ_MODEL=mixtral-8x7b-32768
+```
+
+**Supported Providers:**
+- `openai` - GPT-3.5 Turbo, GPT-4, GPT-4 Turbo
+- `anthropic` - Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
+- `groq` - Mixtral 8x7B, Llama 2 70B, Gemma 7B
+
+See `.env.example` for all configuration options.
 
 ### API Endpoints
 
@@ -82,7 +121,10 @@ git push railway main
 
 5. **Configure environment variables** (if needed):
    - Go to your Railway project settings
-   - Add any required environment variables
+   - Add your LLM provider variables:
+     - `LLM_PROVIDER` (e.g., `openai`, `anthropic`, `groq`)
+     - `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY`, `GROQ_API_KEY` depending on provider)
+     - Optional: `OPENAI_MODEL`, `ANTHROPIC_MODEL`, `GROQ_MODEL` (defaults used if not set)
 
 6. **Get your API URL**:
    - Railway will automatically assign a public URL
